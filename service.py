@@ -860,7 +860,7 @@ def text_to_voice_speed():
                     
                     chunk_data = audio.cpu().numpy().tobytes()
                     print(f"Server: Generated {len(chunk_data)} bytes for chunk {idx + 1}")
-                    print(f"Server: Audio Emotions: {current_emotion}")
+                    print(f"Server: Audio Emotion/s: {current_emotion}")
                     # Check connection again before yielding
                     if check_client_connected():
                         yield chunk_data
