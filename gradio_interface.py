@@ -2,6 +2,8 @@ import torch
 import torchaudio
 import gradio as gr
 from os import getenv
+import os
+from pathlib import Path
 
 from zonos.model import Zonos, DEFAULT_BACKBONE_CLS as ZonosBackbone
 from zonos.conditioning import make_cond_dict, supported_language_codes
@@ -12,6 +14,10 @@ CURRENT_MODEL = None
 
 SPEAKER_EMBEDDING = None
 SPEAKER_AUDIO_PATH = None
+
+# Add constants for voice storage
+SAVED_VOICES_DIR = Path("saved_voices")
+SAVED_VOICES_DIR.mkdir(exist_ok=True)
 
 
 def load_model_if_needed(model_choice: str):
@@ -193,6 +199,31 @@ def generate_audio(
     return (sr_out, wav_out.squeeze().numpy()), seed
 
 
+def save_current_voice_embedding(speaker_audio, name):
+    """Save the current speaker embedding to a file."""
+    if speaker_audio is None:
+        return "No speaker audio provided to create embedding from."
+    if not name:
+        return "Please provide a name for the voice."
+    
+    if SPEAKER_EMBEDDING is None or SPEAKER_AUDIO_PATH != speaker_audio:
+        wav, sr = torchaudio.load(speaker_audio)
+        embedding = CURRENT_MODEL.make_speaker_embedding(wav, sr)
+        embedding = embedding.to(device, dtype=torch.bfloat16)
+    else:
+        embedding = SPEAKER_EMBEDDING
+        
+    # Sanitize filename
+    name = "".join(c for c in name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+    voice_path = SAVED_VOICES_DIR / f"{name}.pt"
+    
+    try:
+        torch.save(embedding, voice_path)
+        return f"Successfully saved voice embedding as '{name}'"
+    except Exception as e:
+        return f"Error saving voice: {str(e)}"
+
+
 def build_interface():
     supported_models = []
     if "transformer" in ZonosBackbone.supported_architectures:
@@ -296,6 +327,23 @@ def build_interface():
         with gr.Column():
             generate_button = gr.Button("Generate Audio")
             output_audio = gr.Audio(label="Generated Audio", type="numpy", autoplay=True)
+
+        # Add new section for voice saving after the speaker_audio input
+        with gr.Row():
+            voice_name_input = gr.Textbox(
+                label="Voice Name",
+                placeholder="Enter a name to save this voice",
+                interactive=True
+            )
+            save_voice_btn = gr.Button("💾 Save Voice Embedding")
+            save_result = gr.Textbox(label="Save Result", interactive=False)
+            
+        # Add the save voice button click handler
+        save_voice_btn.click(
+            fn=save_current_voice_embedding,
+            inputs=[speaker_audio, voice_name_input],
+            outputs=save_result
+        )
 
         model_choice.change(
             fn=update_ui,
