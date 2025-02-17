@@ -1,0 +1,9 @@
+flask>=2.0.0
+werkzeug>=2.0.0
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.21.0
+safetensors>=0.3.1
+transformers>=4.30.0
+huggingface_hub>=0.16.4
+tqdm>=4.65.0
