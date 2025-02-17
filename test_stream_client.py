@@ -69,7 +69,7 @@ class AudioPlayer:
         self.stop()
         self.p.terminate()
 
-def stream_audio_speed(text, voice_name="Dad"):
+def stream_audio_speed(text, voice_name="morg"):
     """Test the speed streaming endpoint with threaded playback."""
     url = "http://localhost:5000/text-to-voice-speed"
     headers = {
